@@ -5,4 +5,4 @@ Run the script by providing folder paths for source, replica, logs and script lo
 
 E.g
 
-python folder_sync.py C:\Users\<name>\Desktop\test_folder\Source C:\<name>\<name>\Desktop\test_folder\Replica C:\Users\<name>\Desktop\test_folder\logs\logs.txt 30
+python folder_sync.py C:\Users\name\Desktop\test_folder\Source C:\Users\name\Desktop\test_folder\Replica C:\Users\name\Desktop\test_folder\logs\logs.txt 30
