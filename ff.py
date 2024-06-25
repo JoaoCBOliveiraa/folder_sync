@@ -75,35 +75,31 @@ def file_sync(source, replica, logger):
   logger.info('----------------------------------------------')
 
   # Missing files logic
-  for root, dirs, files in os.walk(source):
-    for name in dirs + files:
-      item_source = os.path.join(root, name)
-      item_replica = os.path.join(replica, os.path.relpath(item_source, source))
-      if not os.path.exists(item_replica):
+  for files in compare_obj.left_only:
+    item_source = os.path.join(source, files)
+    item_replica = os.path.join(replica, files)
 
-         if os.path.isdir(item_source):
-            shutil.copytree(item_source, item_replica)
-            logger.info(f'Directory and content successfully copied from {source} to {replica}')
+    if os.path.isdir(item_source):
+        logger.info(f'Copying directory: {item_replica}')
+        shutil.copytree(item_source, item_replica)
+        logger.info(f'Directory and content successfully copied from {source} to {replica}')
 
-         else:
-            shutil.copy2(item_source, item_replica)
-            logger.info(f'File successfully copied from {source} to {replica}')
+    else:
+        logger.info(f'Copying file: {item_replica}')
+        shutil.copy2(item_source, item_replica)
+        logger.info(f'File successfully copied from {source} to {replica}')
 
   # Deleting files present in replica and not in source
-  for root, dirs, files in os.walk(replica, topdown=False):
-     for name in files:
-        item_replica = os.path.join(root, name)
-        item_source = os.path.join(source, os.path.relpath(item_replica, replica))
-        if not os.path.exists(item_source):
-           os.remove(item_source)
-           logger.info(f'File successfully removed from {replica}')
+  for files in compare_obj.right_only:
+     item_replica = os.path.join(replica, files)
 
-     for name in dirs:
-         item_replica = os.path.join(root, name)
-         item_source = os.path.join(source, os.path.relpath(item_replica, replica))
-         if not os.path.exists(item_source):
-            shutil.rmtree(item_replica)
-            logger.info(f'Directory and content successfully removed from {replica}')
+     if os.path.isdir(item_replica):
+        shutil.rmtree(item_replica)
+        logger.info(f'Directory and content successfully removed from {replica}')
+
+     else:
+        os.remove(item_replica)
+        logger.info(f'File successfully removed from {replica}')
 
   # if common files were found, execute update logic
 
