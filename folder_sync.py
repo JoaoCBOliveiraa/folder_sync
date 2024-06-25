@@ -4,6 +4,7 @@ import shutil
 import logging
 import filecmp
 from time import sleep
+from shutil import copy2
 
 def path_select():
   # this function creates an object with all the parameters needed for the script
@@ -16,6 +17,10 @@ def path_select():
 
 def log_set(logs_path):
   # This function logs changes to a new or existing log file
+  dir_logs = os.path.dirname(logs_path)
+  if not os.path.exists(dir_logs):
+     os.makedirs(dir_logs)
+     logger.info(f'Created a logs directory at {dir_logs}')
 
   logger = logging.getLogger()
   logger.setLevel(logging.INFO) # Logging config
@@ -52,9 +57,22 @@ def file_sync(source, replica, logger):
     logger.info('Replica folder was created.')
 
   compare_obj = filecmp.dircmp(source, replica)
-  logger.info(f'Files/directories found in source folder: {os.listdir(source)} \nFiles/directories found in replica folder: {os.listdir(replica)}')
-  report = compare_obj.report()
-  logger.info(f'This is the result of the file comparison: \n\n{report}')
+  logger.info('----------------------------------------------')
+     
+  for _, dir_s, _ in os.walk(source):
+     logger.info(f'Directory found in source folder: {dir_s}')
+
+  for _, _, file_s in os.walk(source):
+     logger.info(f'File found in source folder: {file_s}')
+     
+  logger.info('----------------------------------------------')
+
+  for _, dir_r, _ in os.walk(replica):
+     logger.info(f'Directory found in replica folder: {dir_r}')
+
+  for _, _, file_r in os.walk(replica):
+     logger.info(f'File found in replica folder: {file_r}')
+  logger.info('----------------------------------------------')
 
   # Missing files logic
   for files in compare_obj.left_only:
@@ -97,18 +115,28 @@ def file_sync(source, replica, logger):
         else:
            shutil.copy2(item_source, item_replica)
            logger.info(f'Detected a file with changes in {item_replica} and copied from {item_source}')
+
+filecmp.clear_cache()
         
-def sync_loop(source, replica, interval):
-   while True:
-      sync_loop(source, replica)
-      print('Press CTRL+C to exit the script')
-      sleep(interval)
+def sync_loop(source, replica, interval, logger):
+   try:
+      while True:
+         file_sync(source, replica, logger)  # Change: Call file_sync instead of sync_loop
+         logger.info(f'Waiting for {interval} seconds before the next sync...')
+         print('Press CTRL+C to exit the script')
+         sleep(interval)
+
+   except KeyboardInterrupt:
+      logger.info('Synchronization stopped by user.')
+
 
 if __name__ == "__main__":
    args = path_select()
-   log_set(args.logs)
-   logging.info('Initiating file/folder sync')
+   logger = log_set(args.logs)
+   logger.info('Initiating file/folder sync')
 
    source_folder = args.source
    replica_folder = args.replica
    interval = args.interval
+
+   sync_loop(source_folder, replica_folder, interval, logger)
