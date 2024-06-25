@@ -2,9 +2,8 @@ import argparse
 import os
 import shutil
 import logging
-import filecmp
 from time import sleep
-from shutil import copy2
+import filecmp
 
 def path_select():
   # this function creates an object with all the parameters needed for the script
