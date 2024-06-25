@@ -56,7 +56,6 @@ def file_sync(source, replica, logger):
     os.makedirs(replica)
     logger.info('Replica folder was created.')
 
-  compare_obj = filecmp.dircmp(source, replica)
   logger.info('----------------------------------------------')
      
   for _, dir_s, _ in os.walk(source):
@@ -95,7 +94,7 @@ def file_sync(source, replica, logger):
         item_replica = os.path.join(root, name)
         item_source = os.path.join(source, os.path.relpath(item_replica, replica))
         if not os.path.exists(item_source):
-           os.remove(item_source)
+           os.remove(item_replica)
            logger.info(f'File successfully removed from {replica}')
 
      for name in dirs:
@@ -105,29 +104,28 @@ def file_sync(source, replica, logger):
             shutil.rmtree(item_replica)
             logger.info(f'Directory and content successfully removed from {replica}')
 
-  # if common files were found, execute update logic
+  # File comparison logic, if it finds a different file it updates it from source to replica
+  try:
+    for root, _, files in os.walk(source):
+     for name in files:
+        item_source = os.path.join(root, name)
+        item_replica = os.path.join(replica, os.path.relpath(item_source, source))
+        
+        if not filecmp.cmp(item_source, item_replica):
+           shutil.copy2(item_source, item_replica)
+           logger.info(f'File successfully copied from {source} to {replica}')
+    
+  except OSError as e:
+     logger.error(f'Error during file sychronization: {e}')
 
-
-  for files in compare_obj.common_files:
-      item_source = os.path.join(source, files)
-      item_replica = os.path.join(replica, files)
-
-      if not filecmp.cmp(item_source, item_replica):
-         if os.path.isdir(item_source):
-            shutil.copytree(item_source, item_replica, copy_function=copy2, dirs_exist_ok=True)
-            logger.info(f'Detected a folder with changes in {item_replica} and copied from {item_source}')
-
-         else:
-            shutil.copy2(item_source, item_replica)
-            logger.info(f'Detected a file with changes in {item_replica} and copied from {item_source}')
-
-filecmp.clear_cache()
+  logger.info(f'Synchronization completed from {source} to {replica}')
+  filecmp.clear_cache()
         
 def sync_loop(source, replica, interval, logger):
    try:
       while True:
          file_sync(source, replica, logger)  # Change: Call file_sync instead of sync_loop
-         logger.info(f'Waiting for {interval} seconds before the next sync...')
+         logger.info(f'Waiting {interval} seconds before the next sync...')
          print('Press CTRL+C to exit the script')
          sleep(interval)
 
